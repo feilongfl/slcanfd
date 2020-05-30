@@ -313,19 +313,19 @@ static void slc_encaps(struct slcan *sl, struct canfd_frame *cf, __be16 protocol
 	if(protocol == htons(ETH_P_CANFD)) {
 		pos ++;
 		*pos = 'X';
-		printk("canfd flag: %x\n", cf->flags);
 		if(cf->flags & CANFD_BRS) {
 			printk("canfd BRS flag: %x\n", cf->flags);
 			*pos |= 0x20; //lower case for BRS
 		}
 	}
 
+	printk("CAN_EFF_FLAG: %x\n", cf->can_id);
 	/* determine number of chars for the CAN-identifier */
 	if (cf->can_id & CAN_EFF_FLAG) {
 		id &= CAN_EFF_MASK;
 		endpos = pos + SLC_EFF_ID_LEN;
 	} else {
-		*(pos - 1) |= 0x20; /* convert R/T to lower case for SFF */
+		*(unsigned char*)(sl->xbuff) |= 0x20; /* convert R/T to lower case for SFF */
 		id &= CAN_SFF_MASK;
 		endpos = pos + SLC_SFF_ID_LEN;
 	}
