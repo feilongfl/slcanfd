@@ -220,7 +220,7 @@ static void slc_bump(struct slcan *sl)
 			LENCASE('9', 12); // '9' | 0x20 = '9'
 			LENCASE('a', 16);
 			LENCASE('b', 20);
-			LENCASE('c', 26);
+			LENCASE('c', 24);
 			LENCASE('d', 32);
 			LENCASE('e', 48);
 			LENCASE('f', 64);
@@ -310,11 +310,12 @@ static void slc_encaps(struct slcan *sl, struct canfd_frame *cf, __be16 protocol
 		*pos = 'T'; /* becomes 't' in standard frame format (SSF) */
 
 	/* CAN-FD */
-	if(protocol == ETH_P_CANFD) {
+	if(protocol == htons(ETH_P_CANFD)) {
 		pos ++;
 		*pos = 'X';
-
+		printk("canfd flag: %x\n", cf->flags);
 		if(cf->flags & CANFD_BRS) {
+			printk("canfd BRS flag: %x\n", cf->flags);
 			*pos |= 0x20; //lower case for BRS
 		}
 	}
@@ -324,7 +325,7 @@ static void slc_encaps(struct slcan *sl, struct canfd_frame *cf, __be16 protocol
 		id &= CAN_EFF_MASK;
 		endpos = pos + SLC_EFF_ID_LEN;
 	} else {
-		*pos |= 0x20; /* convert R/T to lower case for SFF */
+		*(pos - 1) |= 0x20; /* convert R/T to lower case for SFF */
 		id &= CAN_SFF_MASK;
 		endpos = pos + SLC_SFF_ID_LEN;
 	}
@@ -338,7 +339,24 @@ static void slc_encaps(struct slcan *sl, struct canfd_frame *cf, __be16 protocol
 
 	pos += (cf->can_id & CAN_EFF_FLAG) ? SLC_EFF_ID_LEN : SLC_SFF_ID_LEN;
 
-	*pos++ = cf->len + '0';
+	if(cf->len <= 8)
+		*pos++ = cf->len + '0';
+	else
+		switch(cf->len) {
+#define LENCASE(DLCASCII, LEN) case LEN: \
+						*pos++ = DLCASCII; \
+						break
+			LENCASE('9', 12); // '9' | 0x20 = '9'
+			LENCASE('a', 16);
+			LENCASE('b', 20);
+			LENCASE('c', 24);
+			LENCASE('d', 32);
+			LENCASE('e', 48);
+			LENCASE('f', 64);
+#undef LENCASE
+		default:
+			printk("Error DLC: %d\n", cf->len);
+		}
 
 	/* RTR frames may have a dlc > 0 but they never have any data bytes */
 	if (!(cf->can_id & CAN_RTR_FLAG)) {
@@ -415,8 +433,11 @@ static netdev_tx_t slc_xmit(struct sk_buff *skb, struct net_device *dev)
 {
 	struct slcan *sl = netdev_priv(dev);
 
-	if (skb->len != CAN_MTU)
+	if (skb->len != CANFD_MTU || skb->len != CAN_MTU) {
+		//continue
+	} else {
 		goto out;
+	}
 
 	spin_lock(&sl->lock);
 	if (!netif_running(dev))  {
@@ -504,7 +525,7 @@ static void slc_setup(struct net_device *dev)
 	dev->addr_len		= 0;
 	dev->tx_queue_len	= 10;
 
-	dev->mtu		= CAN_MTU;
+	dev->mtu		= CANFD_MTU;
 	dev->type		= ARPHRD_CAN;
 
 	/* New-style flags. */
