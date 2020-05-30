@@ -1,0 +1,52 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_OUTPUT_FILESEP	slash	/slash or backslash/
+!_TAG_OUTPUT_MODE	u-ctags	/u-ctags or e-ctags/
+!_TAG_PROGRAM_AUTHOR	Universal Ctags Team	//
+!_TAG_PROGRAM_NAME	Universal Ctags	/Derived from Exuberant Ctags/
+!_TAG_PROGRAM_URL	https://ctags.io/	/official site/
+!_TAG_PROGRAM_VERSION	0.0.0	/a3c87ab5/
+SLCAN_MAGIC	slcanfd.c	/^#define SLCAN_MAGIC /;"	d	file:
+SLC_CMD_LEN	slcanfd.c	/^#define SLC_CMD_LEN /;"	d	file:
+SLC_EFF_ID_LEN	slcanfd.c	/^#define SLC_EFF_ID_LEN /;"	d	file:
+SLC_MTU	slcanfd.c	/^#define SLC_MTU /;"	d	file:
+SLC_SFF_ID_LEN	slcanfd.c	/^#define SLC_SFF_ID_LEN /;"	d	file:
+SLF_ERROR	slcanfd.c	/^#define SLF_ERROR	/;"	d	file:
+SLF_INUSE	slcanfd.c	/^#define SLF_INUSE	/;"	d	file:
+____versions	slcanfd.mod.c	/^static const struct modversion_info ____versions[]$/;"	v	typeref:typename:const struct modversion_info[]__used __section (__versions)	file:
+dev	slcanfd.c	/^	struct net_device	*dev;		\/* easy for intr handling    *\/$/;"	m	struct:slcan	typeref:struct:net_device *	file:
+flags	slcanfd.c	/^	unsigned long		flags;		\/* Flag values\/ mode etc     *\/$/;"	m	struct:slcan	typeref:typename:unsigned long	file:
+lock	slcanfd.c	/^	spinlock_t		lock;$/;"	m	struct:slcan	typeref:typename:spinlock_t	file:
+magic	slcanfd.c	/^	int			magic;$/;"	m	struct:slcan	typeref:typename:int	file:
+maxdev	slcanfd.c	/^static int maxdev = 10;		\/* MAX number of SLCAN channels;$/;"	v	typeref:typename:int	file:
+rbuff	slcanfd.c	/^	unsigned char		rbuff[SLC_MTU];	\/* receiver buffer	     *\/$/;"	m	struct:slcan	typeref:typename:unsigned char[]	file:
+rcount	slcanfd.c	/^	int			rcount;         \/* received chars counter    *\/$/;"	m	struct:slcan	typeref:typename:int	file:
+slc_alloc	slcanfd.c	/^static struct slcan *slc_alloc(void)$/;"	f	typeref:struct:slcan *	file:
+slc_bump	slcanfd.c	/^static void slc_bump(struct slcan *sl)$/;"	f	typeref:typename:void	file:
+slc_close	slcanfd.c	/^static int slc_close(struct net_device *dev)$/;"	f	typeref:typename:int	file:
+slc_encaps	slcanfd.c	/^static void slc_encaps(struct slcan *sl, struct can_frame *cf)$/;"	f	typeref:typename:void	file:
+slc_free_netdev	slcanfd.c	/^static void slc_free_netdev(struct net_device *dev)$/;"	f	typeref:typename:void	file:
+slc_ldisc	slcanfd.c	/^static struct tty_ldisc_ops slc_ldisc = {$/;"	v	typeref:struct:tty_ldisc_ops	file:
+slc_netdev_ops	slcanfd.c	/^static const struct net_device_ops slc_netdev_ops = {$/;"	v	typeref:typename:const struct net_device_ops	file:
+slc_open	slcanfd.c	/^static int slc_open(struct net_device *dev)$/;"	f	typeref:typename:int	file:
+slc_setup	slcanfd.c	/^static void slc_setup(struct net_device *dev)$/;"	f	typeref:typename:void	file:
+slc_sync	slcanfd.c	/^static void slc_sync(void)$/;"	f	typeref:typename:void	file:
+slc_xmit	slcanfd.c	/^static netdev_tx_t slc_xmit(struct sk_buff *skb, struct net_device *dev)$/;"	f	typeref:typename:netdev_tx_t	file:
+slcan	slcanfd.c	/^struct slcan {$/;"	s	file:
+slcan_change_mtu	slcanfd.c	/^static int slcan_change_mtu(struct net_device *dev, int new_mtu)$/;"	f	typeref:typename:int	file:
+slcan_close	slcanfd.c	/^static void slcan_close(struct tty_struct *tty)$/;"	f	typeref:typename:void	file:
+slcan_devs	slcanfd.c	/^static struct net_device **slcan_devs;$/;"	v	typeref:struct:net_device **	file:
+slcan_exit	slcanfd.c	/^static void __exit slcan_exit(void)$/;"	f	typeref:typename:void __exit	file:
+slcan_hangup	slcanfd.c	/^static int slcan_hangup(struct tty_struct *tty)$/;"	f	typeref:typename:int	file:
+slcan_init	slcanfd.c	/^static int __init slcan_init(void)$/;"	f	typeref:typename:int __init	file:
+slcan_ioctl	slcanfd.c	/^static int slcan_ioctl(struct tty_struct *tty, struct file *file,$/;"	f	typeref:typename:int	file:
+slcan_open	slcanfd.c	/^static int slcan_open(struct tty_struct *tty)$/;"	f	typeref:typename:int	file:
+slcan_receive_buf	slcanfd.c	/^static void slcan_receive_buf(struct tty_struct *tty,$/;"	f	typeref:typename:void	file:
+slcan_transmit	slcanfd.c	/^static void slcan_transmit(struct work_struct *work)$/;"	f	typeref:typename:void	file:
+slcan_unesc	slcanfd.c	/^static void slcan_unesc(struct slcan *sl, unsigned char s)$/;"	f	typeref:typename:void	file:
+slcan_write_wakeup	slcanfd.c	/^static void slcan_write_wakeup(struct tty_struct *tty)$/;"	f	typeref:typename:void	file:
+tty	slcanfd.c	/^	struct tty_struct	*tty;		\/* ptr to TTY structure	     *\/$/;"	m	struct:slcan	typeref:struct:tty_struct *	file:
+tx_work	slcanfd.c	/^	struct work_struct	tx_work;	\/* Flushes transmit buffer   *\/$/;"	m	struct:slcan	typeref:struct:work_struct	file:
+xbuff	slcanfd.c	/^	unsigned char		xbuff[SLC_MTU];	\/* transmitter buffer	     *\/$/;"	m	struct:slcan	typeref:typename:unsigned char[]	file:
+xhead	slcanfd.c	/^	unsigned char		*xhead;         \/* pointer to next XMIT byte *\/$/;"	m	struct:slcan	typeref:typename:unsigned char *	file:
+xleft	slcanfd.c	/^	int			xleft;          \/* bytes left in XMIT queue  *\/$/;"	m	struct:slcan	typeref:typename:int	file:
