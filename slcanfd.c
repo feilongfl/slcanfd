@@ -5,7 +5,7 @@
  *
  * slcan.c Author    : Oliver Hartkopp <socketcan@hartkopp.net>
  * slcanfd.c Author  : YuLong Yao <feilongphone@gmail.com>
- *
+ * 
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
  * Free Software Foundation; either version 2 of the License, or (at your
@@ -70,8 +70,15 @@ module_param(maxdev, int, 0);
 MODULE_PARM_DESC(maxdev, "Maximum number of slcan interfaces");
 
 /* maximum rx buffer len: extended CAN frame with timestamp */
-// #define SLC_MTU (sizeof("T1111222281122334455667788EA5F\r")+1)
-#define SLC_MTU (sizeof("Tx11112222F11223344556677881122334455667788112233445566778811223344556677881122334455667788112233445566778811223344556677881122334455667788EA5F\r")+1)
+#define SLC_MTU (sizeof("Tx11112222F"      \
+						"1122334455667788" \
+						"1122334455667788" \
+						"1122334455667788" \
+						"1122334455667788" \
+						"1122334455667788" \
+						"1122334455667788" \
+						"1122334455667788" \
+						"1122334455667788EA5F\r")+1)
 
 #define SLC_CMD_LEN 1
 #define SLC_SFF_ID_LEN 3
@@ -101,13 +108,13 @@ struct slcan {
 static struct net_device **slcan_devs;
 
  /************************************************************************
-  *			SLCANFD ENCAPSULATION FORMAT			 *
+  *			SLCAN ENCAPSULATION FORMAT			 *
   ************************************************************************/
 
 /*
  * A CAN frame has a can_id (11 bit standard frame format OR 29 bit extended
- * frame format) a data length code (len) which can be from 0 to 8
- * and up to <len> data bytes as payload.
+ * frame format) a data length code (can_dlc) which can be from 0 to f
+ * and up to <can_dlc> data bytes as payload.
  * Additionally a CAN frame may become a remote transmission frame if the
  * RTR-bit is set. This causes another ECU to send a CAN frame with the
  * given can_id.
@@ -116,7 +123,10 @@ static struct net_device **slcan_devs;
  * <type> <id> <dlc> <data>*
  *
  * Extended frames (29 bit) are defined by capital characters in the type.
- * RTR frames are defined as 'r' types - normal frames have 't' type:
+ * RTR frames are defined as 'r' types - normal frames have 't' type.
+ * CANFD frame are use 'x'/'X' after frame type, 'x' will enable BRS,
+ * 'X' will disable BRS.
+ * 
  * t => 11 bit data CAN frame
  * r => 11 bit RTR CAN frame
  * T => 29 bit data CAN frame
@@ -129,7 +139,7 @@ static struct net_device **slcan_devs;
  * rX => 11 bit RTR CAN-FD frame(without BRS)
  * TX => 29 bit data CAN-FD frame(without BRS)
  * RX => 29 bit RTR CAN-FD frame(without BRS)
- * 
+ *
  * The <id> is 3 (standard) or 8 (extended) bytes in ASCII Hex (base64).
  * The <dlc> is a one byte Hex number ('0' - 'f')
  * The <data> section has at much ASCII Hex bytes as defined by the <dlc>
@@ -148,10 +158,10 @@ static struct net_device **slcan_devs;
  */
 
  /************************************************************************
-  *			STANDARD SLCANFD DECAPSULATION			 *
+  *			STANDARD SLCAN DECAPSULATION			 *
   ************************************************************************/
 
-/* Send one completely decapsulated canfd_frame to the network layer */
+/* Send one completely decapsulated can_frame to the network layer */
 static void slc_bump(struct slcan *sl)
 {
 	struct sk_buff *skb;
@@ -250,8 +260,6 @@ static void slc_bump(struct slcan *sl)
 		}
 	}
 
-	printk("proto: %x\n",CAN_PROTO);
-
 	if(CAN_PROTO == ETH_P_CANFD) {
 		skb = dev_alloc_skb(sizeof(struct canfd_frame) +
 			    sizeof(struct can_skb_priv));
@@ -334,7 +342,6 @@ static void slc_encaps(struct slcan *sl, struct canfd_frame *cf, __be16 protocol
 		}
 	}
 
-	printk("CAN_EFF_FLAG: %x\n", cf->can_id);
 	/* determine number of chars for the CAN-identifier */
 	if (cf->can_id & CAN_EFF_FLAG) {
 		id &= CAN_EFF_MASK;
@@ -448,9 +455,7 @@ static netdev_tx_t slc_xmit(struct sk_buff *skb, struct net_device *dev)
 {
 	struct slcan *sl = netdev_priv(dev);
 
-	if (skb->len != CANFD_MTU || skb->len != CAN_MTU) {
-		//continue
-	} else {
+	if (skb->len != CANFD_MTU && skb->len != CAN_MTU) {
 		goto out;
 	}
 
