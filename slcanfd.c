@@ -1,11 +1,10 @@
 /*
- * slcan.c - serial line CAN interface driver (using tty line discipline)
+ * slcanfd.c - serial line CAN-FD interface driver (using tty line discipline)
  *
- * This file is derived from linux/drivers/net/slip/slip.c
+ * This file is derived from linux/drivers/net/can/slcan.c
  *
- * slip.c Authors  : Laurence Culhane <loz@holmes.demon.co.uk>
- *                   Fred N. van Kempen <waltje@uwalt.nl.mugnet.org>
- * slcan.c Author  : Oliver Hartkopp <socketcan@hartkopp.net>
+ * slcan.c Author    : Oliver Hartkopp <socketcan@hartkopp.net>
+ * slcanfd.c Author  : YuLong Yao <feilongphone@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -60,7 +59,7 @@
 MODULE_ALIAS_LDISC(N_SLCAN);
 MODULE_DESCRIPTION("serial line CAN-FD interface");
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("feilong <feilongphone@gmail.com>");
+MODULE_AUTHOR("YuLong Yao <feilongphone@gmail.com>");
 
 #define SLCAN_MAGIC 0x53CA
 
@@ -72,7 +71,7 @@ MODULE_PARM_DESC(maxdev, "Maximum number of slcan interfaces");
 
 /* maximum rx buffer len: extended CAN frame with timestamp */
 // #define SLC_MTU (sizeof("T1111222281122334455667788EA5F\r")+1)
-#define SLC_MTU (sizeof("Tt11112222F11223344556677881122334455667788112233445566778811223344556677881122334455667788112233445566778811223344556677881122334455667788EA5F\r")+1)
+#define SLC_MTU (sizeof("Tx11112222F11223344556677881122334455667788112233445566778811223344556677881122334455667788112233445566778811223344556677881122334455667788EA5F\r")+1)
 
 #define SLC_CMD_LEN 1
 #define SLC_SFF_ID_LEN 3
@@ -102,7 +101,7 @@ struct slcan {
 static struct net_device **slcan_devs;
 
  /************************************************************************
-  *			SLCAN ENCAPSULATION FORMAT			 *
+  *			SLCANFD ENCAPSULATION FORMAT			 *
   ************************************************************************/
 
 /*
@@ -132,7 +131,7 @@ static struct net_device **slcan_devs;
  * RX => 29 bit RTR CAN-FD frame(without BRS)
  * 
  * The <id> is 3 (standard) or 8 (extended) bytes in ASCII Hex (base64).
- * The <dlc> is a one byte ASCII number ('0' - '8')
+ * The <dlc> is a one byte Hex number ('0' - 'f')
  * The <data> section has at much ASCII Hex bytes as defined by the <dlc>
  *
  * Examples:
@@ -141,11 +140,15 @@ static struct net_device **slcan_devs;
  * t4563112233 : can_id 0x456, len 3, data 0x11 0x22 0x33
  * T12ABCDEF2AA55 : extended can_id 0x12ABCDEF, len 2, data 0xAA 0x55
  * r1230 : can_id 0x123, len 0, no data, remote transmission request
+ * tx1230 : can_id 0x123, len 0, no data, can-fd, use BRS
+ * TX12ABCDEF2AA55 : extended can_id 0x12ABCDEF, len 2, data 0xAA 0x55, can-fd,
+ * 					 not use BRS
+ * rX1230 : can_id 0x123, len 0, no data, remote transmission request, can-fd
  *
  */
 
  /************************************************************************
-  *			STANDARD SLCAN DECAPSULATION			 *
+  *			STANDARD SLCANFD DECAPSULATION			 *
   ************************************************************************/
 
 /* Send one completely decapsulated canfd_frame to the network layer */
@@ -291,7 +294,7 @@ static void slcan_unesc(struct slcan *sl, unsigned char s)
 }
 
  /************************************************************************
-  *			STANDARD SLCAN ENCAPSULATION			 *
+  *			STANDARD SLCANFD ENCAPSULATION			 *
   ************************************************************************/
 
 /* Encapsulate one canfd_frame and stuff into a TTY queue. */
