@@ -6,6 +6,7 @@
  # @email: feilongphone@gmail.com
 ### 
 
+ip link set slcan0 down
 killall slcand
 rmmod -f slcanfd
 rmmod -f slcan

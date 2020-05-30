@@ -250,8 +250,16 @@ static void slc_bump(struct slcan *sl)
 		}
 	}
 
-	skb = dev_alloc_skb(sizeof(struct canfd_frame) +
+	printk("proto: %x\n",CAN_PROTO);
+
+	if(CAN_PROTO == ETH_P_CANFD) {
+		skb = dev_alloc_skb(sizeof(struct canfd_frame) +
 			    sizeof(struct can_skb_priv));
+	} else {
+		skb = dev_alloc_skb(sizeof(struct can_frame) +
+			    sizeof(struct can_skb_priv));
+	}
+
 	if (!skb)
 		return;
 
@@ -264,7 +272,11 @@ static void slc_bump(struct slcan *sl)
 	can_skb_prv(skb)->ifindex = sl->dev->ifindex;
 	can_skb_prv(skb)->skbcnt = 0;
 
-	skb_put_data(skb, &cf, sizeof(struct canfd_frame));
+	if(CAN_PROTO == ETH_P_CANFD) {
+		skb_put_data(skb, &cf, sizeof(struct canfd_frame));
+	} else {
+		skb_put_data(skb, &cf, sizeof(struct can_frame));
+	}
 
 	sl->dev->stats.rx_packets++;
 	sl->dev->stats.rx_bytes += cf.len;
