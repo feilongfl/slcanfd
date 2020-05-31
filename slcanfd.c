@@ -144,6 +144,7 @@ static struct net_device **slcan_devs;
  * The <id> is 3 (standard) or 8 (extended) bytes in ASCII Hex (base64).
  * The <dlc> is a one byte Hex number ('0' - 'f')
  * The <data> section has at much ASCII Hex bytes as defined by the <dlc>
+ * No RTR in CAN-FD frame.
  *
  * Examples:
  *
