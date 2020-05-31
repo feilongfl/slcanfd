@@ -87,6 +87,8 @@ MODULE_PARM_DESC(maxdev, "Maximum number of slcan interfaces");
 #define SLC_SFF_ID_LEN 3
 #define SLC_EFF_ID_LEN 8
 
+#define SLCAN_WARNING KERN_WARNING "slcan: "
+
 struct slcan {
 	int			magic;
 
@@ -197,7 +199,7 @@ static void slc_bump(struct slcan *sl)
 	case 'r':
 		cf.can_id = CAN_RTR_FLAG;
 		if (CAN_PROTO == ETH_P_CANFD) {
-			printk(KERN_WARNING "No RTR flag in CAN-FD Frame!\n");
+			printk(SLCAN_WARNING "No RTR flag in CAN-FD Frame!\n");
 			return;
 		}
 		fallthrough;
@@ -211,7 +213,7 @@ static void slc_bump(struct slcan *sl)
 	case 'R':
 		cf.can_id = CAN_RTR_FLAG;
 		if (CAN_PROTO == ETH_P_CANFD) {
-			printk(KERN_WARNING "No RTR flag in CAN-FD Frame!\n");
+			printk(SLCAN_WARNING "No RTR flag in CAN-FD Frame!\n");
 			return;
 		}
 		fallthrough;
@@ -394,7 +396,7 @@ static void slc_encaps(struct slcan *sl, struct canfd_frame *cf, __be16 proto)
 			LENCASE('f', 64);
 #undef LENCASE
 		default:
-			printk(KERN_WARNING "Error DLC: %d\n", cf->len);
+			printk(SLCAN_WARNING "Error DLC: %d\n", cf->len);
 			break;
 		}
 
