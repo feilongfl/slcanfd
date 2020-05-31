@@ -345,7 +345,7 @@ static void slc_encaps(struct slcan *sl, struct canfd_frame *cf, __be16 proto)
 
 	pos = sl->xbuff;
 
-	if ((cf->can_id & CAN_RTR_FLAG) && (proto == htons(ETH_P_CAN)))
+	if ((cf->can_id & CAN_RTR_FLAG) && proto == htons(ETH_P_CAN))
 		*pos = 'R'; /* becomes 'r' in standard frame format (SFF) */
 	else
 		/* becomes 't' in standard frame format (SSF) */
