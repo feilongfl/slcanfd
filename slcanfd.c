@@ -1,11 +1,13 @@
 /*
- * slcanfd.c - serial line CAN-FD interface driver (using tty line discipline)
+ * slcan.c - serial line CAN interface driver (using tty line discipline)
  *
- * This file is derived from linux/drivers/net/can/slcan.c
+ * This file is derived from linux/drivers/net/slip/slip.c
  *
- * slcan.c Author    : Oliver Hartkopp <socketcan@hartkopp.net>
- * slcanfd.c Author  : YuLong Yao <feilongphone@gmail.com>
- * 
+ * slip.c Authors  : Laurence Culhane <loz@holmes.demon.co.uk>
+ *                   Fred N. van Kempen <waltje@uwalt.nl.mugnet.org>
+ * slcan.c Author  : Oliver Hartkopp <socketcan@hartkopp.net>
+ *                   YuLong Yao <feilongphone@gmail.com>
+ *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
  * Free Software Foundation; either version 2 of the License, or (at your
@@ -57,8 +59,9 @@
 #include <linux/can/can-ml.h>
 
 MODULE_ALIAS_LDISC(N_SLCAN);
-MODULE_DESCRIPTION("serial line CAN-FD interface");
+MODULE_DESCRIPTION("serial line CAN interface");
 MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Oliver Hartkopp <socketcan@hartkopp.net>");
 MODULE_AUTHOR("YuLong Yao <feilongphone@gmail.com>");
 
 #define SLCAN_MAGIC 0x53CA
@@ -78,7 +81,7 @@ MODULE_PARM_DESC(maxdev, "Maximum number of slcan interfaces");
 						"1122334455667788" \
 						"1122334455667788" \
 						"1122334455667788" \
-						"1122334455667788EA5F\r")+1)
+						"1122334455667788EA5F\r") + 1)
 
 #define SLC_CMD_LEN 1
 #define SLC_SFF_ID_LEN 3
@@ -126,19 +129,15 @@ static struct net_device **slcan_devs;
  * RTR frames are defined as 'r' types - normal frames have 't' type.
  * CANFD frame are use 'x'/'X' after frame type, 'x' will enable BRS,
  * 'X' will disable BRS.
- * 
+ *
  * t => 11 bit data CAN frame
  * r => 11 bit RTR CAN frame
  * T => 29 bit data CAN frame
  * R => 29 bit RTR CAN frame
  * tx => 11 bit data CAN-FD frame(with BRS)
- * rx => 11 bit RTR CAN-FD frame(with BRS)
  * Tx => 29 bit data CAN-FD frame(with BRS)
- * Rx => 29 bit RTR CAN-FD frame(with BRS)
  * tX => 11 bit data CAN-FD frame(without BRS)
- * rX => 11 bit RTR CAN-FD frame(without BRS)
  * TX => 29 bit data CAN-FD frame(without BRS)
- * RX => 29 bit RTR CAN-FD frame(without BRS)
  *
  * The <id> is 3 (standard) or 8 (extended) bytes in ASCII Hex (base64).
  * The <dlc> is a one byte Hex number ('0' - 'f')
@@ -146,14 +145,17 @@ static struct net_device **slcan_devs;
  *
  * Examples:
  *
- * t1230 : can_id 0x123, len 0, no data
- * t4563112233 : can_id 0x456, len 3, data 0x11 0x22 0x33
- * T12ABCDEF2AA55 : extended can_id 0x12ABCDEF, len 2, data 0xAA 0x55
- * r1230 : can_id 0x123, len 0, no data, remote transmission request
- * tx1230 : can_id 0x123, len 0, no data, can-fd, use BRS
- * TX12ABCDEF2AA55 : extended can_id 0x12ABCDEF, len 2, data 0xAA 0x55, can-fd,
- * 					 not use BRS
- * rX1230 : can_id 0x123, len 0, no data, remote transmission request, can-fd
+ * t1230 : can_id 0x123, can_dlc 0, no data
+ * t4563112233 : can_id 0x456, can_dlc 3, data 0x11 0x22 0x33
+ * T12ABCDEF2AA55 : extended can_id 0x12ABCDEF, can_dlc 2, data 0xAA 0x55
+ * r1230 : can_id 0x123, can_dlc 0, no data, remote transmission request
+ * TX12ABCDEF2AA55 : extended can_id 0x12ABCDEF, can_dlc 2,
+ *				data 0xAA 0x55, can-fd, not use BRS
+ * tX123a11223344556677881122334455667788 : can_id 0x123, can_dlc: a(16byte),
+ *				data: 0x11223344556677881122334455667788,
+ *				can-fd, use BRS.
+ * rX1230 : can_id 0x123, can_dlc 0, no data,
+ *				remote transmission request, can-fd
  *
  */
 
@@ -165,7 +167,8 @@ static struct net_device **slcan_devs;
 static void slc_bump(struct slcan *sl)
 {
 	struct sk_buff *skb;
-	struct canfd_frame cf;
+	struct canfd_frame cf; // canfd frame is bigger than can_frame
+					// so, use this struct for both frame.
 	int i, tmp;
 	u32 tmpid;
 	u16 CAN_PROTO = ETH_P_CAN;
@@ -174,25 +177,30 @@ static void slc_bump(struct slcan *sl)
 
 	memset(&cf, 0, sizeof(cf));
 
-	switch (cmd[1])
-	{
+	// check CAN-FD flag,and move frame type
+	// to flag location for use old parse logic.
+	switch (cmd[1])	{
 	case 'x':
 		cf.flags |= CANFD_BRS;
-		/* fallthrough */
+		fallthrough;
 	case 'X':
 		slc_cmd_len++;
 		CAN_PROTO = ETH_P_CANFD;
 		cmd[1] = cmd[0];
 		break;
-	
-	default:
+
+	default: // not a can fd package.
 		break;
 	}
 
 	switch (*cmd) {
 	case 'r':
 		cf.can_id = CAN_RTR_FLAG;
-		/* fallthrough */
+		if (CAN_PROTO = ETH_P_CANFD) {
+			printk(KERN_WARNING "No RTR flag in CAN-FD Frame!\n");
+			return;
+		}
+		fallthrough;
 	case 't':
 		/* store dlc ASCII value and terminate SFF CAN ID string */
 		cf.len = sl->rbuff[slc_cmd_len + SLC_SFF_ID_LEN];
@@ -202,7 +210,11 @@ static void slc_bump(struct slcan *sl)
 		break;
 	case 'R':
 		cf.can_id = CAN_RTR_FLAG;
-		/* fallthrough */
+		if (CAN_PROTO = ETH_P_CANFD) {
+			printk(KERN_WARNING "No RTR flag in CAN-FD Frame!\n");
+			return;
+		}
+		fallthrough;
 	case 'T':
 		cf.can_id |= CAN_EFF_FLAG;
 		/* store dlc ASCII value and terminate EFF CAN ID string */
@@ -215,21 +227,22 @@ static void slc_bump(struct slcan *sl)
 		return;
 	}
 
+	// check if CAN Id parse failed
 	if (kstrtou32(sl->rbuff + slc_cmd_len, 16, &tmpid))
 		return;
 
 	cf.can_id |= tmpid;
 
 	/* get len from sanitized ASCII value */
-	if (cf.len >= '0' && cf.len <= '8') {
+	if (cf.len >= '0' && cf.len <= '8') { // normal CAN package DLC.
 		cf.len -= '0';
-	} else if(CAN_PROTO == ETH_P_CANFD) {
+	} else if (CAN_PROTO == ETH_P_CANFD) { // CAN-FD Package DLC
 		cf.len |= 0x20; /* convert to lower case for len */
 
-		switch(cf.len) {
+		switch (cf.len) {
 #define LENCASE(DLCASCII, LEN) case DLCASCII: \
-									cf.len = LEN; \
-									break
+						cf.len = LEN; \
+						break
 			LENCASE('9', 12); // '9' | 0x20 = '9'
 			LENCASE('a', 16);
 			LENCASE('b', 20);
@@ -239,10 +252,12 @@ static void slc_bump(struct slcan *sl)
 			LENCASE('f', 64);
 #undef LENCASE
 
-			default:
-				return;
+		default:
+			// DLC error
+			return;
 		}
 	} else {
+		// DLC error
 		return;
 	}
 
@@ -260,14 +275,14 @@ static void slc_bump(struct slcan *sl)
 		}
 	}
 
-	if(CAN_PROTO == ETH_P_CANFD) {
+	// make space for network package.
+	if (CAN_PROTO == ETH_P_CANFD) {
 		skb = dev_alloc_skb(sizeof(struct canfd_frame) +
 			    sizeof(struct can_skb_priv));
 	} else {
 		skb = dev_alloc_skb(sizeof(struct can_frame) +
 			    sizeof(struct can_skb_priv));
 	}
-
 	if (!skb)
 		return;
 
@@ -280,11 +295,11 @@ static void slc_bump(struct slcan *sl)
 	can_skb_prv(skb)->ifindex = sl->dev->ifindex;
 	can_skb_prv(skb)->skbcnt = 0;
 
-	if(CAN_PROTO == ETH_P_CANFD) {
+	// send package
+	if (CAN_PROTO == ETH_P_CANFD)
 		skb_put_data(skb, &cf, sizeof(struct canfd_frame));
-	} else {
+	else
 		skb_put_data(skb, &cf, sizeof(struct can_frame));
-	}
 
 	sl->dev->stats.rx_packets++;
 	sl->dev->stats.rx_bytes += cf.len;
@@ -314,11 +329,11 @@ static void slcan_unesc(struct slcan *sl, unsigned char s)
 }
 
  /************************************************************************
-  *			STANDARD SLCANFD ENCAPSULATION			 *
+  *			STANDARD SLCAN ENCAPSULATION			 *
   ************************************************************************/
 
-/* Encapsulate one canfd_frame and stuff into a TTY queue. */
-static void slc_encaps(struct slcan *sl, struct canfd_frame *cf, __be16 protocol)
+/* Encapsulate one can_frame and stuff into a TTY queue. */
+static void slc_encaps(struct slcan *sl, struct canfd_frame *cf, __be16 proto)
 {
 	int actual, i;
 	unsigned char *pos;
@@ -333,13 +348,11 @@ static void slc_encaps(struct slcan *sl, struct canfd_frame *cf, __be16 protocol
 		*pos = 'T'; /* becomes 't' in standard frame format (SSF) */
 
 	/* CAN-FD */
-	if(protocol == htons(ETH_P_CANFD)) {
-		pos ++;
+	if (proto == htons(ETH_P_CANFD)) {
+		pos++;
 		*pos = 'X';
-		if(cf->flags & CANFD_BRS) {
-			printk("canfd BRS flag: %x\n", cf->flags);
+		if (cf->flags & CANFD_BRS)
 			*pos |= 0x20; //lower case for BRS
-		}
 	}
 
 	/* determine number of chars for the CAN-identifier */
@@ -347,7 +360,9 @@ static void slc_encaps(struct slcan *sl, struct canfd_frame *cf, __be16 protocol
 		id &= CAN_EFF_MASK;
 		endpos = pos + SLC_EFF_ID_LEN;
 	} else {
-		*(unsigned char*)(sl->xbuff) |= 0x20; /* convert R/T to lower case for SFF */
+		/* convert R/T to lower case for SFF */
+		*(unsigned char *)(sl->xbuff) |= 0x20;
+
 		id &= CAN_SFF_MASK;
 		endpos = pos + SLC_SFF_ID_LEN;
 	}
@@ -361,10 +376,10 @@ static void slc_encaps(struct slcan *sl, struct canfd_frame *cf, __be16 protocol
 
 	pos += (cf->can_id & CAN_EFF_FLAG) ? SLC_EFF_ID_LEN : SLC_SFF_ID_LEN;
 
-	if(cf->len <= 8)
+	if (cf->len <= 8)
 		*pos++ = cf->len + '0';
 	else
-		switch(cf->len) {
+		switch (cf->len) {
 #define LENCASE(DLCASCII, LEN) case LEN: \
 						*pos++ = DLCASCII; \
 						break
@@ -377,7 +392,8 @@ static void slc_encaps(struct slcan *sl, struct canfd_frame *cf, __be16 protocol
 			LENCASE('f', 64);
 #undef LENCASE
 		default:
-			printk("Error DLC: %d\n", cf->len);
+			printk(KERN_WARNING "Error DLC: %d\n", cf->len);
+			break;
 		}
 
 	/* RTR frames may have a dlc > 0 but they never have any data bytes */
@@ -442,22 +458,18 @@ static void slcan_write_wakeup(struct tty_struct *tty)
 
 	rcu_read_lock();
 	sl = rcu_dereference(tty->disc_data);
-	if (!sl)
-		goto out;
-
-	schedule_work(&sl->tx_work);
-out:
+	if (sl)
+		schedule_work(&sl->tx_work);
 	rcu_read_unlock();
 }
 
-/* Send a canfd_frame to a TTY queue. */
+/* Send a can_frame to a TTY queue. */
 static netdev_tx_t slc_xmit(struct sk_buff *skb, struct net_device *dev)
 {
 	struct slcan *sl = netdev_priv(dev);
 
-	if (skb->len != CANFD_MTU && skb->len != CAN_MTU) {
+	if (skb->len != CANFD_MTU && skb->len != CAN_MTU)
 		goto out;
-	}
 
 	spin_lock(&sl->lock);
 	if (!netif_running(dev))  {
@@ -471,7 +483,8 @@ static netdev_tx_t slc_xmit(struct sk_buff *skb, struct net_device *dev)
 	}
 
 	netif_stop_queue(sl->dev);
-	slc_encaps(sl, (struct canfd_frame *) skb->data, skb->protocol); /* encaps & send */
+	/* encaps & send */
+	slc_encaps(sl, (struct canfd_frame *)skb->data, skb->protocol);
 	spin_unlock(&sl->lock);
 
 out:
